@@ -20,13 +20,16 @@ SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
 
 
 def configure_tesseract(tesseract_cmd: str | None) -> None:
-    resolved_cmd = tesseract_cmd or os.environ.get("TESSERACT_CMD")
+    resolved_cmd = (
+        tesseract_cmd or os.environ.get("TESSERACT_CMD") or shutil.which("tesseract")
+    )
     if resolved_cmd:
         pytesseract.pytesseract.tesseract_cmd = resolved_cmd
     if shutil.which(pytesseract.pytesseract.tesseract_cmd) is None:
         raise SystemExit(
             "Tesseract executable not found. Install tesseract or provide the path via "
-            "--tesseract-cmd or the TESSERACT_CMD environment variable."
+            "--tesseract-cmd or the TESSERACT_CMD environment variable. "
+            f"(Resolved command: {resolved_cmd or 'not set'})"
         )
     try:
         pytesseract.get_tesseract_version()
