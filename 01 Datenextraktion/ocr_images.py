@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 from pathlib import Path
 
 import pytesseract
@@ -15,6 +17,24 @@ from PIL import Image
 
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+
+
+def configure_tesseract(tesseract_cmd: str | None) -> None:
+    resolved_cmd = tesseract_cmd or os.environ.get("TESSERACT_CMD")
+    if resolved_cmd:
+        pytesseract.pytesseract.tesseract_cmd = resolved_cmd
+    if shutil.which(pytesseract.pytesseract.tesseract_cmd) is None:
+        raise SystemExit(
+            "Tesseract executable not found. Install tesseract or provide the path via "
+            "--tesseract-cmd or the TESSERACT_CMD environment variable."
+        )
+    try:
+        pytesseract.get_tesseract_version()
+    except pytesseract.TesseractNotFoundError as exc:
+        raise SystemExit(
+            "Tesseract is not available. Install it or provide the path via "
+            "--tesseract-cmd or the TESSERACT_CMD environment variable."
+        ) from exc
 
 
 def detect_orientation(image: Image.Image) -> int:
@@ -74,7 +94,13 @@ def main() -> None:
         default="ocr_output.json",
         help="Output JSON path (default: ocr_output.json)",
     )
+    parser.add_argument(
+        "--tesseract-cmd",
+        help="Path to the tesseract executable (or set TESSERACT_CMD).",
+    )
     args = parser.parse_args()
+
+    configure_tesseract(args.tesseract_cmd)
 
     img_dir = Path(args.img_dir)
     if not img_dir.is_dir():
